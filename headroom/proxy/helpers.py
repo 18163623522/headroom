@@ -2893,7 +2893,7 @@ def apply_session_sticky_ccr_tool(
 
 
 class RequestBodyTooLarge(ValueError):
-    """A decompressed request body exceeded :data:`MAX_DECOMPRESSED_BODY_SIZE`.
+    """A raw or decompressed request body exceeded its size ceiling.
 
     Subclasses ``ValueError`` so every existing ``except ValueError`` call site
     keeps answering 400 unchanged, while giving a caller that would rather
@@ -3024,8 +3024,9 @@ async def _read_request_body_bytes(request: Request) -> bytes:
     encoding = (request.headers.get("content-encoding") or "").lower().strip()
 
     # Content-Length is an optimization only, not the enforcement boundary: it
-    # can be absent, understated, or belong to a chunked transfer. The
-    # streaming loop below is what actually bounds every case (#3479).
+    # can be absent, understated, or belong to a chunked transfer (the
+    # original gap this fixes, #3326). The streaming loop below is what
+    # actually bounds every case, chunked or not (#3479).
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
@@ -3047,8 +3048,9 @@ async def _read_request_body_bytes(request: Request) -> bytes:
             )
     raw: bytes = bytes(chunks)
     # Cache like Starlette's own body() would, so any other .body() caller on
-    # this request (there is none today, but future callers get the same
-    # semantics) sees the bytes already read rather than a consumed stream.
+    # this request (e.g. a handler's except-branch falling open to a verbatim
+    # forward after a decode failure) sees the bytes already read rather than
+    # a consumed stream.
     request._body = raw
 
     # Every branch below decompresses incrementally against
