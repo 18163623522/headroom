@@ -252,6 +252,8 @@ Any OpenAI-compatible client works through `headroom proxy`. MCP-native clients:
 `zcode`). Registry authors should use the canonical [`server.json`](server.json)
 rather than reconstructing the `headroom mcp serve` contract from prose.
 
+For Anthropic `/v1/messages`, `--mode cache` skips automatic `--memory` context injection so the provider prefix remains stable. OpenAI chat/responses and Gemini append memory to the live-zone tail. Use `--mode token` when you need automatic memory context on the Anthropic path.
+
 <details>
 <summary><b>GitHub Copilot CLI subscription mode</b></summary>
 
